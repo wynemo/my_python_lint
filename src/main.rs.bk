@@ -1,0 +1,34 @@
+use rustpython_parser::ast::Stmt;
+use rustpython_parser::{ast, Parse};
+
+fn find_import_statements(code: &str) -> Vec<String> {
+    let ast = ast::Suite::parse(code, "<test>").unwrap();
+    let mut imports = Vec::new();
+
+    for statement in ast {
+        match statement {
+            Stmt::Import(import_statement) => {
+                for alias in import_statement.names {
+                    imports.push(alias.name.to_string());
+                }
+            }
+            Stmt::ImportFrom(import_from_statement) => {
+                for alias in import_from_statement.names {
+                    imports.push(alias.name.to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    imports
+}
+
+fn main() {
+    let code = "import os\nfrom a import b";
+
+    let import_statements = find_import_statements(code);
+    for statement in import_statements {
+        println!("{}", statement);
+    }
+}
