@@ -17,7 +17,7 @@ fn find_import_statements(code: &str) -> Vec<TextRange> {
             }
             Stmt::Assign(assign_statement) => {
                 imports.push(assign_statement.range);
-                println!("assign value is {:?}", assign_statement.value)
+                println!("assign statement value is {:?}", assign_statement.value)
                 //expr.value
             }
             Stmt::Expr(expr) => {
