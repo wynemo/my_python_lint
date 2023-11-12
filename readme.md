@@ -7,5 +7,5 @@ list1 = ["1",
         "3"]
 ```
 
-3. trailing comma in tuple
+3. trailing comma in assign statement, make it a tuple
 t = "1",
