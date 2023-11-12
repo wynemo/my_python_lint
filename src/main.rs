@@ -2,6 +2,8 @@
 use rustpython_parser::ast::Stmt;
 use rustpython_parser::text_size::TextRange;
 use rustpython_parser::{ast, Parse};
+use std::fs::File;
+use std::io::prelude::*;
 
 fn find_import_statements(code: &str) -> Vec<TextRange> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
@@ -34,8 +36,14 @@ fn find_import_statements(code: &str) -> Vec<TextRange> {
 }
 
 fn main() {
-    let code = "(1, 2,)\nt=((1, 2), 3)\nf((1, 1,), 2)\nfrom objects.asset import AssetTask, AssetAccountCheck, AssetCheck, AssetAccountScan, AssetScan, Asset, \\\n    AssetAccountScanRelation, Account, DEFAULT_VPC_NAME, Tag\nl = 1\nl += 1";
+    let mut file = File::open("test.py").expect("Failed to open file");
 
+    // Read the file contents into a string
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .expect("Failed to read file");
+
+    let code: &str = &contents;
     let import_statements = find_import_statements(code);
     for statement in import_statements {
         println!("{:?}", statement.start());
