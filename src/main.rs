@@ -19,18 +19,17 @@ fn find_import_statements(code: &str) -> Vec<TextRange> {
             }
             Stmt::ImportFrom(import_from_statement) => {
                 imports.push(import_from_statement.range);
-            }
-            Stmt::Assign(assign_statement) => {
-                imports.push(assign_statement.range);
-                println!("assign statement value is {:?}", assign_statement.value)
-                //expr.value
-            }
-            Stmt::Expr(expr) => {
-                imports.push(expr.range);
-                println!("expr value is {:?}", expr.value)
-            }
+            } // Stmt::Assign(assign_statement) => {
+            //     imports.push(assign_statement.range);
+            //     println!("assign statement value is {:?}", assign_statement.value)
+            //     //expr.value
+            // }
+            // Stmt::Expr(expr) => {
+            //     imports.push(expr.range);
+            //     println!("expr value is {:?}", expr.value)
+            // }
             _ => {
-                println!("Unhandled statement: {:?}", statement);
+                // println!("Unhandled statement: {:?}", statement);
             }
         }
     }
@@ -47,7 +46,7 @@ fn read_file_contents(file_path: &Path) -> Result<String, std::io::Error> {
 
 fn read_python_files<F>(folder_path: &Path, process_file: &mut F) -> Result<(), std::io::Error>
 where
-    F: FnMut(&Path, &str),
+    F: FnMut(&Path, &str) -> Vec<(usize, usize, String)>,
 {
     let entries = fs::read_dir(folder_path)?;
 
@@ -69,16 +68,20 @@ where
     Ok(())
 }
 
-fn parse_source(path: &Path, code: &str) {
-    println!("{:?}", path);
+fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
+    println!("file {:?}", path);
     let import_statements = find_import_statements(code);
+    let mut results = Vec::new();
     for statement in import_statements {
         println!("{:?}", statement.start());
         println!("{:?}", statement.end());
-        let _start: usize = statement.start().into();
-        let _end: usize = statement.end().into();
-        println!("{}", &code[_start.._end])
+        let start: usize = statement.start().into();
+        let end: usize = statement.end().into();
+        let snippet = &code[start..end];
+        println!("{}", snippet);
+        results.push((start, end, snippet.to_string()));
     }
+    results
 }
 
 fn main() {
@@ -94,11 +97,10 @@ fn main() {
     if path.is_file() && path.extension().map_or(false, |ext| ext == "py") {
         if let Ok(contents) = read_file_contents(&path) {
             // println!("File: {}\nContents:\n{}\n", path.display(), contents);
-            parse_source(path, &contents)
+            parse_source(path, &contents);
         }
     } else if path.is_dir() {
-        let mut process_file = parse_source;
-        if let Err(err) = read_python_files(&path, &mut process_file) {
+        if let Err(err) = read_python_files(&path, &mut parse_source) {
             eprintln!("Error reading python files: {}", err);
         }
     } else {
