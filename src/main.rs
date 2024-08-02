@@ -87,7 +87,14 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
         let end: usize = statement.end().into();
         let snippet = &code[start..end];
         // println!("{}", snippet);
-        results.push((start, end, snippet.to_string()));
+        let lines: Vec<&str> = snippet.split('\n').collect();
+        let has_line_ending_with_backslash =
+            lines.iter().any(|line| line.trim_end().ends_with('\\'));
+
+        if has_line_ending_with_backslash {
+            // println!("Snippet contains a line ending with '\\':\n{}", snippet);
+            results.push((start, end, snippet.to_string()));
+        }
     }
     results
 }
@@ -106,7 +113,7 @@ fn main() {
         if let Ok(results) = read_python_files(&path, &mut parse_source) {
             // eprintln!("Error reading python files: {}", err);
             for (file_path, imports) in results {
-                println!("File: {:?}", file_path);
+                // println!("File: {:?}", file_path);
                 for (start, end, snippet) in imports {
                     println!("Import statement: {} (from {} to {})", snippet, start, end);
                 }
