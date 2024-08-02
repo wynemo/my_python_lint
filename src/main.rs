@@ -44,21 +44,21 @@ fn read_file_contents(file_path: &Path) -> Result<String, std::io::Error> {
     Ok(contents)
 }
 
-fn read_python_files<F>(folder_path: &Path, process_file: &mut F) -> Result<(), std::io::Error>
+fn read_python_files<F>(_path: &Path, process_file: &mut F) -> Result<(), std::io::Error>
 where
     F: FnMut(&Path, &str) -> Vec<(usize, usize, String)>,
 {
-    let entries = fs::read_dir(folder_path)?;
+    if _path.is_file() && _path.extension().map_or(false, |ext| ext == "py") {
+        if let Ok(contents) = read_file_contents(&_path) {
+            process_file(&_path, &contents);
+        }
+        return Ok(());
+    } else if _path.is_dir() {
+        let entries = fs::read_dir(_path)?;
 
-    for entry in entries {
-        let entry = entry?;
-        let file_path = entry.path();
-
-        if file_path.is_file() && file_path.extension().map_or(false, |ext| ext == "py") {
-            if let Ok(contents) = read_file_contents(&file_path) {
-                process_file(&file_path, &contents);
-            }
-        } else if file_path.is_dir() {
+        for entry in entries {
+            let entry = entry?;
+            let file_path = entry.path();
             if let Err(err) = read_python_files(&file_path, process_file) {
                 eprintln!("Error reading python files: {}", err);
             }
@@ -94,12 +94,7 @@ fn main() {
 
     let path = Path::new(&args[1]);
 
-    if path.is_file() && path.extension().map_or(false, |ext| ext == "py") {
-        if let Ok(contents) = read_file_contents(&path) {
-            // println!("File: {}\nContents:\n{}\n", path.display(), contents);
-            parse_source(path, &contents);
-        }
-    } else if path.is_dir() {
+    if path.is_file() || path.is_dir() {
         if let Err(err) = read_python_files(&path, &mut parse_source) {
             eprintln!("Error reading python files: {}", err);
         }
