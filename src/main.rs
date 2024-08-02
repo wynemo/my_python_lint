@@ -112,7 +112,7 @@ fn main() {
     if path.is_file() || path.is_dir() {
         if let Ok(results) = read_python_files(&path, &mut parse_source) {
             // eprintln!("Error reading python files: {}", err);
-            for (file_path, imports) in results {
+            for (_file_path, imports) in results {
                 // println!("File: {:?}", file_path);
                 for (start, end, snippet) in imports {
                     println!("Import statement: {} (from {} to {})", snippet, start, end);
