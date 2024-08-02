@@ -77,16 +77,16 @@ where
 }
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
-    println!("file {:?}", path);
+    // println!("file {:?}", path);
     let import_statements = find_import_statements(code);
     let mut results = Vec::new();
     for statement in import_statements {
-        println!("{:?}", statement.start());
-        println!("{:?}", statement.end());
+        // println!("{:?}", statement.start());
+        // println!("{:?}", statement.end());
         let start: usize = statement.start().into();
         let end: usize = statement.end().into();
         let snippet = &code[start..end];
-        println!("{}", snippet);
+        // println!("{}", snippet);
         results.push((start, end, snippet.to_string()));
     }
     results
@@ -103,8 +103,14 @@ fn main() {
     let path = Path::new(&args[1]);
 
     if path.is_file() || path.is_dir() {
-        if let Err(err) = read_python_files(&path, &mut parse_source) {
-            eprintln!("Error reading python files: {}", err);
+        if let Ok(results) = read_python_files(&path, &mut parse_source) {
+            // eprintln!("Error reading python files: {}", err);
+            for (file_path, imports) in results {
+                println!("File: {:?}", file_path);
+                for (start, end, snippet) in imports {
+                    println!("Import statement: {} (from {} to {})", snippet, start, end);
+                }
+            }
         }
     } else {
         eprintln!("Invalid path: {}", path.display());
