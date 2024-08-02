@@ -6,7 +6,7 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn find_import_statements(code: &str) -> Vec<TextRange> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
@@ -44,28 +44,36 @@ fn read_file_contents(file_path: &Path) -> Result<String, std::io::Error> {
     Ok(contents)
 }
 
-fn read_python_files<F>(_path: &Path, process_file: &mut F) -> Result<(), std::io::Error>
+fn read_python_files<F>(
+    _path: &Path,
+    process_file: &mut F,
+) -> Result<Vec<(PathBuf, Vec<(usize, usize, String)>)>, std::io::Error>
 where
     F: FnMut(&Path, &str) -> Vec<(usize, usize, String)>,
 {
+    let mut all_results = Vec::new();
     if _path.is_file() && _path.extension().map_or(false, |ext| ext == "py") {
         if let Ok(contents) = read_file_contents(&_path) {
-            process_file(&_path, &contents);
+            let results = process_file(&_path, &contents);
+            all_results.push((_path.to_path_buf(), results));
         }
-        return Ok(());
+        return Ok(all_results);
     } else if _path.is_dir() {
         let entries = fs::read_dir(_path)?;
 
         for entry in entries {
             let entry = entry?;
             let file_path = entry.path();
-            if let Err(err) = read_python_files(&file_path, process_file) {
-                eprintln!("Error reading python files: {}", err);
+            if let Ok(results) = read_python_files(&file_path, process_file) {
+                all_results.extend(results);
+            } else {
+                //eprintln!("Error reading python files: {}", err);
+                eprintln!("Error reading python files in directory: {:?}", file_path);
             }
         }
     }
 
-    Ok(())
+    Ok(all_results)
 }
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
