@@ -8,26 +8,27 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-fn find_import_statements(code: &str) -> Vec<TextRange> {
+fn find_import_statements(code: &str) -> Vec<(TextRange, String)> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
     let mut imports = Vec::new();
 
     for statement in ast {
         match statement {
             Stmt::Import(import_statement) => {
-                imports.push(import_statement.range);
+                imports.push((import_statement.range, "import".to_string()));
             }
             Stmt::ImportFrom(import_from_statement) => {
-                imports.push(import_from_statement.range);
-            } // Stmt::Assign(assign_statement) => {
-            //     imports.push(assign_statement.range);
-            //     println!("assign statement value is {:?}", assign_statement.value)
-            //     //expr.value
-            // }
-            // Stmt::Expr(expr) => {
-            //     imports.push(expr.range);
-            //     println!("expr value is {:?}", expr.value)
-            // }
+                imports.push((import_from_statement.range, "import".to_string()));
+            }
+            Stmt::Assign(assign_statement) => {
+                imports.push((assign_statement.range, "assign".to_string()));
+                // println!("assign statement value is {:?}", assign_statement.value)
+                //expr.value
+            }
+            Stmt::Expr(expr) => {
+                imports.push((expr.range, "expr".to_string()));
+                // println!("expr value is {:?}", expr.value)
+            }
             _ => {
                 // println!("Unhandled statement: {:?}", statement);
             }
@@ -80,20 +81,27 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
     // println!("file {:?}", path);
     let import_statements = find_import_statements(code);
     let mut results = Vec::new();
-    for statement in import_statements {
+    for (statement, _type) in import_statements {
         // println!("{:?}", statement.start());
         // println!("{:?}", statement.end());
-        let start: usize = statement.start().into();
-        let end: usize = statement.end().into();
-        let snippet = &code[start..end];
-        // println!("{}", snippet);
-        let lines: Vec<&str> = snippet.split('\n').collect();
-        let has_line_ending_with_backslash =
-            lines.iter().any(|line| line.trim_end().ends_with('\\'));
+        if _type == "import" {
+            let start: usize = statement.start().into();
+            let end: usize = statement.end().into();
+            let snippet = &code[start..end];
+            // println!("{}", snippet);
+            let lines: Vec<&str> = snippet.split('\n').collect();
+            let has_line_ending_with_backslash =
+                lines.iter().any(|line| line.trim_end().ends_with('\\'));
 
-        if has_line_ending_with_backslash {
-            // println!("Snippet contains a line ending with '\\':\n{}", snippet);
-            results.push((start, end, snippet.to_string()));
+            if has_line_ending_with_backslash {
+                // println!("Snippet contains a line ending with '\\':\n{}", snippet);
+                results.push((start, end, snippet.to_string()));
+            }
+        } else {
+            let start: usize = statement.start().into();
+            let end: usize = statement.end().into();
+            let snippet = &code[start..end];
+            println!("{}: {}", _type, snippet);
         }
     }
     results
