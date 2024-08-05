@@ -5,3 +5,4 @@ from objects.asset import AssetTask, AssetAccountCheck, AssetCheck, AssetAccount
     AssetAccountScanRelation, Account, DEFAULT_VPC_NAME, Tag
 nl = 1
 l += 1
+a = (1, 2)

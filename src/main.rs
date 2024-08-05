@@ -1,5 +1,5 @@
 // use rustpython_parser::ast::visitor;
-use rustpython_parser::ast::Stmt;
+use rustpython_parser::ast::{Expr, Stmt};
 use rustpython_parser::text_size::TextRange;
 use rustpython_parser::{ast, Parse};
 use std::env;
@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 
-fn find_import_statements(code: &str) -> Vec<(TextRange, String)> {
+fn find_statements(code: &str) -> Vec<(TextRange, String)> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
     let mut imports = Vec::new();
 
@@ -21,14 +21,32 @@ fn find_import_statements(code: &str) -> Vec<(TextRange, String)> {
                 imports.push((import_from_statement.range, "import".to_string()));
             }
             Stmt::Assign(assign_statement) => {
-                imports.push((assign_statement.range, "assign".to_string()));
+                // assign_statement.value
                 // println!("assign statement value is {:?}", assign_statement.value)
                 //expr.value
+                match *assign_statement.value {
+                    Expr::Tuple(expr_tuple) => {
+                        // println!("tuple expr elts is {:?}", expr_tuple.elts);
+                        if expr_tuple.elts.len() == 1 {
+                            imports.push((expr_tuple.range, "assign".to_string()));
+                        }
+                    }
+                    _ => {}
+                }
             }
-            Stmt::Expr(expr) => {
-                imports.push((expr.range, "expr".to_string()));
-                // println!("expr value is {:?}", expr.value)
-            }
+            // Stmt::Expr(expr) => {
+            //     imports.push((expr.range, "expr".to_string()));
+            //     let expr =
+            //         ast::Expr::parse(&code[expr.start().into()..expr.end().into()], "<test>")
+            //             .unwrap();
+            //     match expr {
+            //         Expr::Tuple(expr_tuple) => {
+            //             println!("expr elts is {:?}", expr_tuple.elts)
+            //         }
+            //         _ => {}
+            //     }
+            //     // println!("expr value is {:?}", expr.value)
+            // }
             _ => {
                 // println!("Unhandled statement: {:?}", statement);
             }
@@ -79,15 +97,15 @@ where
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
     // println!("file {:?}", path);
-    let import_statements = find_import_statements(code);
+    let import_statements = find_statements(code);
     let mut results = Vec::new();
     for (statement, _type) in import_statements {
         // println!("{:?}", statement.start());
         // println!("{:?}", statement.end());
+        let start: usize = statement.start().into();
+        let end: usize = statement.end().into();
+        let snippet = &code[start..end];
         if _type == "import" {
-            let start: usize = statement.start().into();
-            let end: usize = statement.end().into();
-            let snippet = &code[start..end];
             // println!("{}", snippet);
             let lines: Vec<&str> = snippet.split('\n').collect();
             let has_line_ending_with_backslash =
@@ -97,11 +115,11 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                 // println!("Snippet contains a line ending with '\\':\n{}", snippet);
                 results.push((start, end, snippet.to_string()));
             }
-        } else {
-            let start: usize = statement.start().into();
-            let end: usize = statement.end().into();
-            let snippet = &code[start..end];
-            println!("{}: {}", _type, snippet);
+        } else if _type == "assign" {
+            if snippet.ends_with(",") {
+                results.push((start, end, snippet.to_string()));
+            }
+            // println!("{}: {}", _type, snippet);
         }
     }
     results
@@ -123,7 +141,13 @@ fn main() {
             for (_file_path, imports) in results {
                 // println!("File: {:?}", file_path);
                 for (start, end, snippet) in imports {
-                    println!("Import statement: {} (from {} to {})", snippet, start, end);
+                    println!(
+                        "path {} statement: {} (from {} to {})",
+                        _file_path.display(),
+                        snippet,
+                        start,
+                        end
+                    );
                 }
             }
         }
