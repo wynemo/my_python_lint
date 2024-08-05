@@ -6,3 +6,9 @@ from objects.asset import AssetTask, AssetAccountCheck, AssetCheck, AssetAccount
 nl = 1
 l += 1
 a = (1, 2)
+t = ("123"
+    "456")
+
+t = ["123"
+    "abc",
+    "789"]

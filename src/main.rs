@@ -2,6 +2,7 @@
 use rustpython_parser::ast::{Expr, Stmt};
 use rustpython_parser::text_size::TextRange;
 use rustpython_parser::{ast, Parse};
+use rustpython_parser::{lexer::lex, Mode, StringKind, Tok};
 use std::env;
 use std::fs;
 use std::fs::File;
@@ -125,6 +126,27 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
     results
 }
 
+fn get_tokens(code: &str) -> Vec<Tok> {
+    let tokens = lex(code, Mode::Module)
+        .map(|tok| tok.expect("Failed to lex"))
+        .collect::<Vec<_>>();
+    let mut _tokens = Vec::new();
+
+    for (token, range) in tokens {
+        match token {
+            Tok::NonLogicalNewline => continue,
+            Tok::Newline => continue,
+            Tok::Indent => continue,
+            Tok::Dedent => continue,
+            _ => {
+                // println!("{token:?}@{range:?}",);
+                _tokens.push(token);
+            }
+        }
+    }
+    _tokens
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -148,6 +170,25 @@ fn main() {
                         start,
                         end
                     );
+                }
+            }
+        }
+        if path.is_file() {
+            if let Ok(contents) = read_file_contents(&path) {
+                let tokens = get_tokens(&contents);
+                let mut i = 0;
+                while i < tokens.len() - 1 {
+                    if let (Some(elem1), Some(elem2)) = (tokens.get(i), tokens.get(i + 1)) {
+                        match (elem1, elem2) {
+                            (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
+                                println!("Found adjacent TypeA elements: {:?} and {:?}", a, b);
+                                i += 2; // Skip the next element
+                            }
+                            _ => {
+                                i += 1;
+                            }
+                        }
+                    }
                 }
             }
         }
