@@ -22,9 +22,6 @@ fn find_statements(code: &str) -> Vec<(TextRange, String)> {
                 imports.push((import_from_statement.range, "import".to_string()));
             }
             Stmt::Assign(assign_statement) => {
-                // assign_statement.value
-                // println!("assign statement value is {:?}", assign_statement.value)
-                //expr.value
                 match *assign_statement.value {
                     Expr::Tuple(expr_tuple) => {
                         // println!("tuple expr elts is {:?}", expr_tuple.elts);
@@ -35,9 +32,7 @@ fn find_statements(code: &str) -> Vec<(TextRange, String)> {
                     _ => {}
                 }
             }
-            _ => {
-                // println!("Unhandled statement: {:?}", statement);
-            }
+            _ => {}
         }
     }
 
