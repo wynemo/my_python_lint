@@ -28,8 +28,9 @@ fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, String)> {
     let ast = match ast::Suite::parse(code, "<test>") {
         Ok(parsed_ast) => parsed_ast,
         Err(e) => {
-            eprintln!("Failed to parse code: {:?}", path);
-            panic!("Parsing error: {:?}", e);
+            eprintln!("Failed to parse code: {:?} with error {:?}", path, e);
+            // panic!("Parsing error: {:?}", e);
+            return [].to_vec();
         }
     };
     let mut imports = Vec::new();
