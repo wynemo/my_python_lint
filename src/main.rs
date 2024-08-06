@@ -35,19 +35,6 @@ fn find_statements(code: &str) -> Vec<(TextRange, String)> {
                     _ => {}
                 }
             }
-            // Stmt::Expr(expr) => {
-            //     imports.push((expr.range, "expr".to_string()));
-            //     let expr =
-            //         ast::Expr::parse(&code[expr.start().into()..expr.end().into()], "<test>")
-            //             .unwrap();
-            //     match expr {
-            //         Expr::Tuple(expr_tuple) => {
-            //             println!("expr elts is {:?}", expr_tuple.elts)
-            //         }
-            //         _ => {}
-            //     }
-            //     // println!("expr value is {:?}", expr.value)
-            // }
             _ => {
                 // println!("Unhandled statement: {:?}", statement);
             }
@@ -195,16 +182,4 @@ fn main() {
     } else {
         eprintln!("Invalid path: {}", path.display());
     }
-
-    // let mut file = File::open("test.py").expect("Failed to open file");
-
-    // // Read the file contents into a string
-    // let mut contents = String::new();
-    // file.read_to_string(&mut contents)
-    //     .expect("Failed to read file");
-
-    // let code: &str = &contents;
-
-    // let code1 = "lst = [1, 2, 3]";
-    // let python_expr = ast::Expr::parse(code1, "<test>").unwrap(); // or expr
 }
