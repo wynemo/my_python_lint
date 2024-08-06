@@ -25,8 +25,14 @@ fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, String)>) {
     }
 }
 
-fn find_statements(code: &str) -> Vec<(TextRange, String)> {
-    let ast = ast::Suite::parse(code, "<test>").unwrap();
+fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, String)> {
+    let ast = match ast::Suite::parse(code, "<test>") {
+        Ok(parsed_ast) => parsed_ast,
+        Err(e) => {
+            eprintln!("Failed to parse code: {:?}", path);
+            panic!("Parsing error: {:?}", e);
+        }
+    };
     let mut imports = Vec::new();
 
     for statement in ast {
@@ -92,7 +98,7 @@ where
 }
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
-    let _statements = find_statements(code);
+    let _statements = find_statements(code, path);
     let mut results = Vec::new();
     for (statement, _type) in _statements {
         let start: usize = statement.start().into();
