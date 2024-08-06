@@ -4,7 +4,6 @@ use rustpython_parser::text_size::TextRange;
 use rustpython_parser::{ast, Parse};
 use rustpython_parser::{lexer::lex, Mode, Tok};
 use std::fs;
-use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::{env, process};
@@ -124,7 +123,7 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
             let tokens = get_tokens(&snippet);
             let mut i = 0;
             while i < tokens.len().saturating_sub(1) {
-                if let (Some((elem1, range1)), Some((elem2, range2))) =
+                if let (Some((elem1, _range1)), Some((elem2, _range2))) =
                     (tokens.get(i), tokens.get(i + 1))
                 {
                     match (elem1, elem2) {
