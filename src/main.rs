@@ -2,12 +2,12 @@
 use rustpython_parser::ast::{Expr, Stmt};
 use rustpython_parser::text_size::TextRange;
 use rustpython_parser::{ast, Parse};
-use rustpython_parser::{lexer::lex, Mode, StringKind, Tok};
-use std::env;
+use rustpython_parser::{lexer::lex, Mode, Tok};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
+use std::{env, process};
 
 fn find_statements(code: &str) -> Vec<(TextRange, String)> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
@@ -103,10 +103,30 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
             // println!("{}: {}", _type, snippet);
         }
     }
+
+    let tokens = get_tokens(&code);
+    let mut i = 0;
+    while i < tokens.len() - 1 {
+        if let (Some((elem1, range1)), Some((elem2, range2))) = (tokens.get(i), tokens.get(i + 1)) {
+            match (elem1, elem2) {
+                (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
+                    // println!("Found adjacent TypeA elements: {:?} and {:?}", a, b);
+                    let start = range1.start().into();
+                    let end = range2.end().into();
+                    results.push((start, end, code[start..end].to_string()));
+                    i += 2; // Skip the next element
+                }
+                _ => {
+                    i += 1;
+                }
+            }
+        }
+    }
+
     results
 }
 
-fn get_tokens(code: &str) -> Vec<Tok> {
+fn get_tokens(code: &str) -> Vec<(Tok, TextRange)> {
     let tokens = lex(code, Mode::Module)
         .map(|tok| tok.expect("Failed to lex"))
         .collect::<Vec<_>>();
@@ -120,7 +140,7 @@ fn get_tokens(code: &str) -> Vec<Tok> {
             Tok::Dedent => continue,
             _ => {
                 // println!("{token:?}@{range:?}",);
-                _tokens.push(token);
+                _tokens.push((token, range));
             }
         }
     }
@@ -140,11 +160,12 @@ fn main() {
     if path.is_file() || path.is_dir() {
         if let Ok(results) = read_python_files(&path, &mut parse_source) {
             // eprintln!("Error reading python files: {}", err);
-            for (_file_path, imports) in results {
+            let _len = results.len();
+            for (_file_path, info) in results {
                 // println!("File: {:?}", file_path);
-                for (start, end, snippet) in imports {
+                for (start, end, snippet) in info {
                     println!(
-                        "path {} statement: {} (from {} to {})",
+                        "path {} snippet: {} (from {} to {})",
                         _file_path.display(),
                         snippet,
                         start,
@@ -152,24 +173,8 @@ fn main() {
                     );
                 }
             }
-        }
-        if path.is_file() {
-            if let Ok(contents) = read_file_contents(&path) {
-                let tokens = get_tokens(&contents);
-                let mut i = 0;
-                while i < tokens.len() - 1 {
-                    if let (Some(elem1), Some(elem2)) = (tokens.get(i), tokens.get(i + 1)) {
-                        match (elem1, elem2) {
-                            (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
-                                println!("Found adjacent TypeA elements: {:?} and {:?}", a, b);
-                                i += 2; // Skip the next element
-                            }
-                            _ => {
-                                i += 1;
-                            }
-                        }
-                    }
-                }
+            if _len > 0 {
+                process::exit(-1)
             }
         }
     } else {
