@@ -83,8 +83,6 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
     let _statements = find_statements(code);
     let mut results = Vec::new();
     for (statement, _type) in _statements {
-        // println!("{:?}", statement.start());
-        // println!("{:?}", statement.end());
         let start: usize = statement.start().into();
         let end: usize = statement.end().into();
         let snippet = &code[start..end];
