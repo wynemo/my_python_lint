@@ -21,17 +21,21 @@ fn find_statements(code: &str) -> Vec<(TextRange, String)> {
             Stmt::ImportFrom(import_from_statement) => {
                 imports.push((import_from_statement.range, "import".to_string()));
             }
-            Stmt::Assign(assign_statement) => {
-                match *assign_statement.value {
-                    Expr::Tuple(expr_tuple) => {
+            Stmt::Assign(assign_statement) => match *assign_statement.value {
+                Expr::Tuple(expr_tuple) => {
+                    if expr_tuple.elts.len() == 1 {
+                        imports.push((expr_tuple.range, "assign_1_tuple".to_string()));
+                    } else {
                         // println!("tuple expr elts is {:?}", expr_tuple.elts);
-                        if expr_tuple.elts.len() == 1 {
-                            imports.push((expr_tuple.range, "assign".to_string()));
-                        }
+                        imports.push((expr_tuple.range, "assign_tuple".to_string()));
                     }
-                    _ => {}
                 }
-            }
+                Expr::List(expr_list) => {
+                    // println!("list expr elts is {:?}", expr_list.elts);
+                    imports.push((expr_list.range, "assign_list".to_string()));
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -79,7 +83,6 @@ where
 }
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
-    // println!("file {:?}", path);
     let _statements = find_statements(code);
     let mut results = Vec::new();
     for (statement, _type) in _statements {
@@ -96,28 +99,29 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                 // println!("Snippet contains a line ending with '\\':\n{}", snippet);
                 results.push((start, end, snippet.to_string()));
             }
-        } else if _type == "assign" {
+        } else if _type == "assign_1_tuple" {
             if snippet.ends_with(",") {
                 results.push((start, end, snippet.to_string()));
             }
             // println!("{}: {}", _type, snippet);
-        }
-    }
-
-    let tokens = get_tokens(&code);
-    let mut i = 0;
-    while i < tokens.len() - 1 {
-        if let (Some((elem1, range1)), Some((elem2, range2))) = (tokens.get(i), tokens.get(i + 1)) {
-            match (elem1, elem2) {
-                (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
-                    // println!("Found adjacent TypeA elements: {:?} and {:?}", a, b);
-                    let start = range1.start().into();
-                    let end = range2.end().into();
-                    results.push((start, end, code[start..end].to_string()));
-                    i += 2; // Skip the next element
-                }
-                _ => {
-                    i += 1;
+        } else if _type == "assign_tuple" || _type == "assign_list" {
+            // println!("type {}: {}", _type, snippet);
+            let tokens = get_tokens(&snippet);
+            let mut i = 0;
+            while i < tokens.len().saturating_sub(1) {
+                if let (Some((elem1, range1)), Some((elem2, range2))) =
+                    (tokens.get(i), tokens.get(i + 1))
+                {
+                    match (elem1, elem2) {
+                        (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
+                            println!("Found adjacent TypeA elements: {:?} and {:?}", a, b);
+                            results.push((start, end, snippet.to_string()));
+                            i += 2; // Skip the next element
+                        }
+                        _ => {
+                            i += 1;
+                        }
+                    }
                 }
             }
         }
@@ -159,11 +163,10 @@ fn main() {
 
     if path.is_file() || path.is_dir() {
         if let Ok(results) = read_python_files(&path, &mut parse_source) {
-            // eprintln!("Error reading python files: {}", err);
-            let _len = results.len();
+            let mut _len = 0;
             for (_file_path, info) in results {
-                // println!("File: {:?}", file_path);
                 for (start, end, snippet) in info {
+                    _len += 1;
                     println!(
                         "path {} snippet: {} (from {} to {})",
                         _file_path.display(),
@@ -173,6 +176,7 @@ fn main() {
                     );
                 }
             }
+
             if _len > 0 {
                 process::exit(-1)
             }
