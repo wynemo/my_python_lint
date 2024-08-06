@@ -80,9 +80,9 @@ where
 
 fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
     // println!("file {:?}", path);
-    let import_statements = find_statements(code);
+    let _statements = find_statements(code);
     let mut results = Vec::new();
-    for (statement, _type) in import_statements {
+    for (statement, _type) in _statements {
         // println!("{:?}", statement.start());
         // println!("{:?}", statement.end());
         let start: usize = statement.start().into();
