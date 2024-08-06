@@ -9,6 +9,22 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::{env, process};
 
+fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, String)>) {
+    match expr {
+        Expr::Tuple(expr_tuple) => {
+            if expr_tuple.elts.len() == 1 {
+                imports.push((expr_tuple.range.clone(), "assign_1_tuple".to_string()));
+            } else {
+                imports.push((expr_tuple.range.clone(), "assign_tuple".to_string()));
+            }
+        }
+        Expr::List(expr_list) => {
+            imports.push((expr_list.range.clone(), "assign_list".to_string()));
+        }
+        _ => {}
+    }
+}
+
 fn find_statements(code: &str) -> Vec<(TextRange, String)> {
     let ast = ast::Suite::parse(code, "<test>").unwrap();
     let mut imports = Vec::new();
@@ -21,21 +37,14 @@ fn find_statements(code: &str) -> Vec<(TextRange, String)> {
             Stmt::ImportFrom(import_from_statement) => {
                 imports.push((import_from_statement.range, "import".to_string()));
             }
-            Stmt::Assign(assign_statement) => match *assign_statement.value {
-                Expr::Tuple(expr_tuple) => {
-                    if expr_tuple.elts.len() == 1 {
-                        imports.push((expr_tuple.range, "assign_1_tuple".to_string()));
-                    } else {
-                        // println!("tuple expr elts is {:?}", expr_tuple.elts);
-                        imports.push((expr_tuple.range, "assign_tuple".to_string()));
-                    }
+            Stmt::Assign(assign_statement) => {
+                handle_expr(&assign_statement.value, &mut imports);
+            }
+            Stmt::Return(_return_statement) => {
+                if let Some(return_value) = _return_statement.value {
+                    handle_expr(&return_value, &mut imports);
                 }
-                Expr::List(expr_list) => {
-                    // println!("list expr elts is {:?}", expr_list.elts);
-                    imports.push((expr_list.range, "assign_list".to_string()));
-                }
-                _ => {}
-            },
+            }
             _ => {}
         }
     }
