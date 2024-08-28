@@ -33,29 +33,29 @@ fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, String)> {
             return [].to_vec();
         }
     };
-    let mut imports = Vec::new();
+    let mut statements = Vec::new();
 
     for statement in ast {
         match statement {
             Stmt::Import(import_statement) => {
-                imports.push((import_statement.range, "import".to_string()));
+                statements.push((import_statement.range, "import".to_string()));
             }
             Stmt::ImportFrom(import_from_statement) => {
-                imports.push((import_from_statement.range, "import".to_string()));
+                statements.push((import_from_statement.range, "import".to_string()));
             }
             Stmt::Assign(assign_statement) => {
-                handle_expr(&assign_statement.value, &mut imports);
+                handle_expr(&assign_statement.value, &mut statements);
             }
             Stmt::Return(_return_statement) => {
                 if let Some(return_value) = _return_statement.value {
-                    handle_expr(&return_value, &mut imports);
+                    handle_expr(&return_value, &mut statements);
                 }
             }
             _ => {}
         }
     }
 
-    imports
+    statements
 }
 
 fn read_file_contents(file_path: &Path) -> Result<String, std::io::Error> {
