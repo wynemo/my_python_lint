@@ -20,13 +20,13 @@ fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, StatementType)>) {
     match expr {
         Expr::Tuple(expr_tuple) => {
             if expr_tuple.elts.len() == 1 {
-                imports.push((expr_tuple.range.clone(), StatementType::Assign1Tuple));
+                imports.push((expr_tuple.range, StatementType::Assign1Tuple));
             } else {
-                imports.push((expr_tuple.range.clone(), StatementType::AssignTuple));
+                imports.push((expr_tuple.range, StatementType::AssignTuple));
             }
         }
         Expr::List(expr_list) => {
-            imports.push((expr_list.range.clone(), StatementType::AssignList));
+            imports.push((expr_list.range, StatementType::AssignList));
         }
         _ => {}
     }
@@ -73,17 +73,22 @@ fn read_file_contents(file_path: &Path) -> Result<String, std::io::Error> {
     Ok(contents)
 }
 
+type FilePath = PathBuf;
+type ProcessedData = (usize, usize, String);
+type ProcessedFile = Vec<ProcessedData>;
+type ProcessedFilesResult = Vec<(FilePath, ProcessedFile)>;
+
 fn read_python_files<F>(
     _path: &Path,
     process_file: &mut F,
-) -> Result<Vec<(PathBuf, Vec<(usize, usize, String)>)>, std::io::Error>
+) -> Result<ProcessedFilesResult, std::io::Error>
 where
-    F: FnMut(&Path, &str) -> Vec<(usize, usize, String)>,
+    F: FnMut(&Path, &str) -> ProcessedFile,
 {
     let mut all_results = Vec::new();
     if _path.is_file() && _path.extension().map_or(false, |ext| ext == "py") {
-        if let Ok(contents) = read_file_contents(&_path) {
-            let results = process_file(&_path, &contents);
+        if let Ok(contents) = read_file_contents(_path) {
+            let results = process_file(_path, &contents);
             all_results.push((_path.to_path_buf(), results));
         }
         return Ok(all_results);
@@ -125,14 +130,14 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                 }
             }
             StatementType::Assign1Tuple => {
-                if snippet.ends_with(",") {
+                if snippet.ends_with(',') {
                     results.push((start, end, snippet.to_string()));
                 }
                 // println!("{}: {}", _type, snippet);
             }
             StatementType::AssignTuple | StatementType::AssignList => {
                 // println!("type {}: {}", _type, snippet);
-                let tokens = get_tokens(&snippet);
+                let tokens = get_tokens(snippet);
                 let mut i = 0;
                 while i < tokens.len().saturating_sub(1) {
                     if let (Some((elem1, _range1)), Some((elem2, _range2))) =
@@ -189,7 +194,7 @@ fn main() {
     let path = Path::new(&args[1]);
 
     if path.is_file() || path.is_dir() {
-        if let Ok(results) = read_python_files(&path, &mut parse_source) {
+        if let Ok(results) = read_python_files(path, &mut parse_source) {
             let mut _len = 0;
             for (_file_path, info) in results {
                 for (start, end, snippet) in info {
