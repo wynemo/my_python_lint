@@ -8,23 +8,31 @@ use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::{env, process};
 
-fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, String)>) {
+#[derive(Debug, Clone)]
+enum StatementType {
+    Assign1Tuple,
+    AssignTuple,
+    AssignList,
+    Import,
+}
+
+fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, StatementType)>) {
     match expr {
         Expr::Tuple(expr_tuple) => {
             if expr_tuple.elts.len() == 1 {
-                imports.push((expr_tuple.range.clone(), "assign_1_tuple".to_string()));
+                imports.push((expr_tuple.range.clone(), StatementType::Assign1Tuple));
             } else {
-                imports.push((expr_tuple.range.clone(), "assign_tuple".to_string()));
+                imports.push((expr_tuple.range.clone(), StatementType::AssignTuple));
             }
         }
         Expr::List(expr_list) => {
-            imports.push((expr_list.range.clone(), "assign_list".to_string()));
+            imports.push((expr_list.range.clone(), StatementType::AssignList));
         }
         _ => {}
     }
 }
 
-fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, String)> {
+fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, StatementType)> {
     let ast = match ast::Suite::parse(code, "<test>") {
         Ok(parsed_ast) => parsed_ast,
         Err(e) => {
@@ -38,10 +46,10 @@ fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, String)> {
     for statement in ast {
         match statement {
             Stmt::Import(import_statement) => {
-                statements.push((import_statement.range, "import".to_string()));
+                statements.push((import_statement.range, StatementType::Import));
             }
             Stmt::ImportFrom(import_from_statement) => {
-                statements.push((import_from_statement.range, "import".to_string()));
+                statements.push((import_from_statement.range, StatementType::Import));
             }
             Stmt::Assign(assign_statement) => {
                 handle_expr(&assign_statement.value, &mut statements);
@@ -104,37 +112,41 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
         let start: usize = statement.start().into();
         let end: usize = statement.end().into();
         let snippet = &code[start..end];
-        if _type == "import" {
-            // println!("{}", snippet);
-            let lines: Vec<&str> = snippet.split('\n').collect();
-            let has_line_ending_with_backslash =
-                lines.iter().any(|line| line.trim_end().ends_with('\\'));
+        match _type {
+            StatementType::Import => {
+                // println!("{}", snippet);
+                let lines: Vec<&str> = snippet.split('\n').collect();
+                let has_line_ending_with_backslash =
+                    lines.iter().any(|line| line.trim_end().ends_with('\\'));
 
-            if has_line_ending_with_backslash {
-                // println!("Snippet contains a line ending with '\\':\n{}", snippet);
-                results.push((start, end, snippet.to_string()));
+                if has_line_ending_with_backslash {
+                    // println!("Snippet contains a line ending with '\\':\n{}", snippet);
+                    results.push((start, end, snippet.to_string()));
+                }
             }
-        } else if _type == "assign_1_tuple" {
-            if snippet.ends_with(",") {
-                results.push((start, end, snippet.to_string()));
+            StatementType::Assign1Tuple => {
+                if snippet.ends_with(",") {
+                    results.push((start, end, snippet.to_string()));
+                }
+                // println!("{}: {}", _type, snippet);
             }
-            // println!("{}: {}", _type, snippet);
-        } else if _type == "assign_tuple" || _type == "assign_list" {
-            // println!("type {}: {}", _type, snippet);
-            let tokens = get_tokens(&snippet);
-            let mut i = 0;
-            while i < tokens.len().saturating_sub(1) {
-                if let (Some((elem1, _range1)), Some((elem2, _range2))) =
-                    (tokens.get(i), tokens.get(i + 1))
-                {
-                    match (elem1, elem2) {
-                        (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
-                            println!("found adjacent string elements: {:?} and {:?}", a, b);
-                            results.push((start, end, snippet.to_string()));
-                            i += 2; // Skip the next element
-                        }
-                        _ => {
-                            i += 1;
+            StatementType::AssignTuple | StatementType::AssignList => {
+                // println!("type {}: {}", _type, snippet);
+                let tokens = get_tokens(&snippet);
+                let mut i = 0;
+                while i < tokens.len().saturating_sub(1) {
+                    if let (Some((elem1, _range1)), Some((elem2, _range2))) =
+                        (tokens.get(i), tokens.get(i + 1))
+                    {
+                        match (elem1, elem2) {
+                            (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
+                                println!("found adjacent string elements: {:?} and {:?}", a, b);
+                                results.push((start, end, snippet.to_string()));
+                                i += 2; // Skip the next element
+                            }
+                            _ => {
+                                i += 1;
+                            }
                         }
                     }
                 }
