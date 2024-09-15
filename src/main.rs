@@ -10,9 +10,9 @@ use std::{env, process};
 
 #[derive(Debug, Clone)]
 enum StatementType {
-    Assign1Tuple,
-    AssignTuple,
-    AssignList,
+    OneTuple,
+    Tuple,
+    List,
     Import,
 }
 
@@ -20,13 +20,13 @@ fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, StatementType)>) {
     match expr {
         Expr::Tuple(expr_tuple) => {
             if expr_tuple.elts.len() == 1 {
-                imports.push((expr_tuple.range, StatementType::Assign1Tuple));
+                imports.push((expr_tuple.range, StatementType::OneTuple));
             } else {
-                imports.push((expr_tuple.range, StatementType::AssignTuple));
+                imports.push((expr_tuple.range, StatementType::Tuple));
             }
         }
         Expr::List(expr_list) => {
-            imports.push((expr_list.range, StatementType::AssignList));
+            imports.push((expr_list.range, StatementType::List));
         }
         _ => {}
     }
@@ -129,13 +129,13 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                     results.push((start, end, snippet.to_string()));
                 }
             }
-            StatementType::Assign1Tuple => {
+            StatementType::OneTuple => {
                 if snippet.ends_with(',') {
                     results.push((start, end, snippet.to_string()));
                 }
                 // println!("{}: {}", _type, snippet);
             }
-            StatementType::AssignTuple | StatementType::AssignList => {
+            StatementType::Tuple | StatementType::List => {
                 // println!("type {}: {}", _type, snippet);
                 let tokens = get_tokens(snippet);
                 let mut i = 0;
