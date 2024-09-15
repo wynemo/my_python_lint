@@ -16,17 +16,17 @@ enum StatementType {
     Import,
 }
 
-fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, StatementType)>) {
+fn handle_expr(expr: &Expr, range: TextRange, imports: &mut Vec<(TextRange, StatementType)>) {
     match expr {
         Expr::Tuple(expr_tuple) => {
             if expr_tuple.elts.len() == 1 {
-                imports.push((expr_tuple.range, StatementType::OneTuple));
+                imports.push((range, StatementType::OneTuple));
             } else {
-                imports.push((expr_tuple.range, StatementType::Tuple));
+                imports.push((range, StatementType::Tuple));
             }
         }
-        Expr::List(expr_list) => {
-            imports.push((expr_list.range, StatementType::List));
+        Expr::List(_expr_list) => {
+            imports.push((range, StatementType::List));
         }
         _ => {}
     }
@@ -52,11 +52,15 @@ fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, StatementType)> {
                 statements.push((import_from_statement.range, StatementType::Import));
             }
             Stmt::Assign(assign_statement) => {
-                handle_expr(&assign_statement.value, &mut statements);
+                handle_expr(
+                    &assign_statement.value,
+                    assign_statement.range,
+                    &mut statements,
+                );
             }
             Stmt::Return(_return_statement) => {
                 if let Some(return_value) = _return_statement.value {
-                    handle_expr(&return_value, &mut statements);
+                    handle_expr(&return_value, _return_statement.range, &mut statements);
                 }
             }
             _ => {}
