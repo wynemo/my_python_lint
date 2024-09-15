@@ -144,8 +144,8 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                         (tokens.get(i), tokens.get(i + 1))
                     {
                         match (elem1, elem2) {
-                            (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
-                                println!("found adjacent string elements: {:?} and {:?}", a, b);
+                            (Tok::String { value: _a, .. }, Tok::String { value: _b, .. }) => {
+                                // println!("found adjacent string elements: {:?} and {:?}", a, b);
                                 results.push((start, end, snippet.to_string()));
                                 i += 2; // Skip the next element
                             }
