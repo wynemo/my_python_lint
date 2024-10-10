@@ -10,23 +10,23 @@ use std::{env, process};
 
 #[derive(Debug, Clone)]
 enum StatementType {
-    Assign1Tuple,
-    AssignTuple,
-    AssignList,
+    OneTuple,
+    Tuple,
+    List,
     Import,
 }
 
-fn handle_expr(expr: &Expr, imports: &mut Vec<(TextRange, StatementType)>) {
+fn handle_expr(expr: &Expr, range: TextRange, imports: &mut Vec<(TextRange, StatementType)>) {
     match expr {
         Expr::Tuple(expr_tuple) => {
             if expr_tuple.elts.len() == 1 {
-                imports.push((expr_tuple.range, StatementType::Assign1Tuple));
+                imports.push((range, StatementType::OneTuple));
             } else {
-                imports.push((expr_tuple.range, StatementType::AssignTuple));
+                imports.push((range, StatementType::Tuple));
             }
         }
-        Expr::List(expr_list) => {
-            imports.push((expr_list.range, StatementType::AssignList));
+        Expr::List(_expr_list) => {
+            imports.push((range, StatementType::List));
         }
         _ => {}
     }
@@ -52,11 +52,15 @@ fn find_statements(code: &str, path: &Path) -> Vec<(TextRange, StatementType)> {
                 statements.push((import_from_statement.range, StatementType::Import));
             }
             Stmt::Assign(assign_statement) => {
-                handle_expr(&assign_statement.value, &mut statements);
+                handle_expr(
+                    &assign_statement.value,
+                    assign_statement.range,
+                    &mut statements,
+                );
             }
             Stmt::Return(_return_statement) => {
                 if let Some(return_value) = _return_statement.value {
-                    handle_expr(&return_value, &mut statements);
+                    handle_expr(&return_value, _return_statement.range, &mut statements);
                 }
             }
             _ => {}
@@ -129,13 +133,13 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                     results.push((start, end, snippet.to_string()));
                 }
             }
-            StatementType::Assign1Tuple => {
+            StatementType::OneTuple => {
                 if snippet.ends_with(',') {
                     results.push((start, end, snippet.to_string()));
                 }
                 // println!("{}: {}", _type, snippet);
             }
-            StatementType::AssignTuple | StatementType::AssignList => {
+            StatementType::Tuple | StatementType::List => {
                 // println!("type {}: {}", _type, snippet);
                 let tokens = get_tokens(snippet);
                 let mut i = 0;
@@ -144,8 +148,8 @@ fn parse_source(path: &Path, code: &str) -> Vec<(usize, usize, String)> {
                         (tokens.get(i), tokens.get(i + 1))
                     {
                         match (elem1, elem2) {
-                            (Tok::String { value: a, .. }, Tok::String { value: b, .. }) => {
-                                println!("found adjacent string elements: {:?} and {:?}", a, b);
+                            (Tok::String { value: _a, .. }, Tok::String { value: _b, .. }) => {
+                                // println!("found adjacent string elements: {:?} and {:?}", a, b);
                                 results.push((start, end, snippet.to_string()));
                                 i += 2; // Skip the next element
                             }
